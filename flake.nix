@@ -1,5 +1,5 @@
 {
-  description = "NiftyMIC GUI v2";
+  description = "NiftyMIC Bot v2";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
@@ -20,7 +20,7 @@
 
         craneLib = crane.lib.${system};
 
-        niftymic-gui = craneLib.buildPackage {
+        niftymic-bot = craneLib.buildPackage {
           src = lib.cleanSourceWith {
             src = craneLib.path ./.;
           };
@@ -44,15 +44,15 @@
       with pkgs;
       {
         checks = {
-          inherit niftymic-gui;
+          inherit niftymic-bot;
         };
 
         packages = {
-          default = niftymic-gui;
+          default = niftymic-bot;
         };
 
         apps.default = flake-utils.lib.mkApp {
-          drv = niftymic-gui;
+          drv = niftymic-bot;
         };
 
         devShells.default = craneLib.devShell {

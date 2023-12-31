@@ -47,7 +47,6 @@ impl Config {
         };
         debug!("Reading configuration");
         let result = ConfigRs::builder()
-            .add_source(File::with_name(DEFAULT_CONFIG))
             .add_source(File::with_name(&config).required(false))
             .add_source(
                 Environment::with_prefix(ENV_PREFIX)
