@@ -43,7 +43,9 @@ fn list_files(path: &PathBuf) -> Result<Vec<String>> {
     for entry in WalkDir::new(path) {
         let entry = entry?;
         if entry.file_type().is_file() {
-            files.push(entry.path().display().to_string());
+            let path_str = entry.path().display().to_string();
+            log::debug!("{}", path_str);
+            files.push(path_str);
         }
     }
     Ok(files)

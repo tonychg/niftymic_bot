@@ -49,6 +49,7 @@ async fn start_bot() -> niftymic::Result<()> {
                 let input_file = InputFile::read(file);
                 let input_file = input_file.file_name(file_name.clone());
                 bot.send_document(msg.chat.id, input_file).await?;
+                bot.delete_message(msg.chat.id, msg.id).await?;
             }
             Ok(())
         })

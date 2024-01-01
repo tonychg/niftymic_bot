@@ -135,10 +135,8 @@ impl WorkingDirectory {
         fs::create_dir(&working_directory.masks)?;
         fs::create_dir(&working_directory.output_nii)?;
         fs::create_dir(&working_directory.output_dicom)?;
-        let files = extract_zip(&archive_path, &working_directory.archive)?;
-        for file in files {
-            debug!("{}", file.to_string());
-        }
+        extract_zip(&archive_path, &working_directory.archive)?;
+        fs::remove_file(archive_path)?;
 
         Ok(working_directory)
     }
@@ -213,6 +211,10 @@ impl WorkingDirectory {
 
     pub fn clean_output_dicom(&self) -> Result<()> {
         self.clean(&self.output_dicom)
+    }
+
+    pub fn clean_dicom(&self) -> Result<()> {
+        self.clean(&self.archive)
     }
 
     fn clean(&self, path: &PathBuf) -> Result<()> {
@@ -361,6 +363,8 @@ impl NiftyMic {
             None,
         )?;
         info!("Successfully convert input archive to nifti files");
+        info!("Removing DICOM");
+        self.working_directory.clean_dicom()?;
         Ok(())
     }
 
