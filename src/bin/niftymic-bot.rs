@@ -49,12 +49,6 @@ async fn start_bot() -> niftymic::Result<()> {
                 let input_file = InputFile::read(file);
                 let input_file = input_file.file_name(file_name.clone());
                 bot.send_document(msg.chat.id, input_file).await?;
-            } else {
-                bot.send_message(
-                    msg.chat.id,
-                    "Bot is running, send a .zip archive to start a reconstruction".to_string(),
-                )
-                .await?;
             }
             Ok(())
         })
