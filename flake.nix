@@ -51,8 +51,11 @@
           default = niftymic-bot;
         };
 
-        apps.default = flake-utils.lib.mkApp {
-          drv = niftymic-bot;
+        apps = {
+          default = {
+            type = "app";
+            program = "${self.packages.${system}.default}/bin/niftymic-bot";
+          };
         };
 
         devShells.default = craneLib.devShell {

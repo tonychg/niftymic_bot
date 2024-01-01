@@ -3,8 +3,8 @@ use std::path::Path;
 use teloxide::net::Download;
 use teloxide::prelude::*;
 
-use niftymic_gui::config::Config;
-use niftymic_gui::*;
+use niftymic_bot::config::Config;
+use niftymic_bot::*;
 use teloxide::types::InputFile;
 use tokio::fs;
 

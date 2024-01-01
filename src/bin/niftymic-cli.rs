@@ -1,8 +1,8 @@
 use clap::{Parser, Subcommand};
 use log::error;
 
-use niftymic_gui::config::Config;
-use niftymic_gui::niftymic::*;
+use niftymic_bot::config::Config;
+use niftymic_bot::niftymic::*;
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]

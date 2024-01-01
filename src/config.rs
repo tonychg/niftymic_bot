@@ -3,7 +3,6 @@ use log::debug;
 use serde::Deserialize;
 
 const DEFAULT_CONFIG_PATH: &str = "/etc/niftymic/niftymic.toml";
-const DEFAULT_CONFIG: &str = "config/default.toml";
 const ENV_PREFIX: &str = "NIFTYMIC";
 
 #[derive(Debug, Deserialize, Clone)]
