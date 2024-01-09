@@ -8,7 +8,7 @@ edition = "2021"
 [dependencies]
 thiserror = "1.0.52"
 clap = { version = "4.4.12", features = ["derive"] }
-pretty_env_logger = "0.4"
+pretty_env_logger = "0.5.0"
 log = "0.4.20"
 zip = "0.6.6"
 ulid = "1.1.0"
@@ -18,3 +18,4 @@ config = {version = "0.13.1", features = ["toml"]}
 serde = "1.0.193"
 teloxide = { version = "0.12", features = ["macros"] }
 tokio = { version =  "1.8", features = ["rt-multi-thread", "macros"] }
+tempfile = "3.9.0"

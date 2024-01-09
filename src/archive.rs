@@ -1,100 +1,90 @@
-use crate::niftymic::*;
-use log::debug;
-use std::{
-    fs::File,
-    io::{BufReader, Read, Write},
-    path::{Path, PathBuf},
-};
-use walkdir::WalkDir;
-use zip::{write::FileOptions, ZipWriter};
+use std::fs::File;
+use std::io::Write;
+use std::path::{Path, PathBuf};
 
-fn is_zip_archive(path: &Path) -> bool {
-    if path.exists() && !path.is_dir() {
-        if let Some(extension) = path.extension() {
-            if extension == "zip" {
-                return true;
-            }
+#[derive(Debug, thiserror::Error)]
+pub enum ArchiveError {
+    #[error("Failed to create new archive: {0}")]
+    CreateError(#[source] zip::result::ZipError),
+    #[error("Failed to extract archive: {0}")]
+    ExtractError(#[source] zip::result::ZipError),
+    #[error(transparent)]
+    IOError(#[from] std::io::Error),
+}
+
+pub struct Archive {
+    path: PathBuf,
+}
+
+impl Archive {
+    pub fn new<P: Into<PathBuf>>(path: P) -> Self {
+        Archive { path: path.into() }
+    }
+
+    pub fn as_path(&self) -> &Path {
+        self.path.as_path()
+    }
+
+    pub fn create<P: AsRef<Path>>(&self, paths: &[P]) -> Result<(), ArchiveError> {
+        let file = File::create(self.as_path())?;
+        let mut zip = zip::ZipWriter::new(file);
+        for path in paths {
+            let buffer = std::fs::read(&path)?;
+            zip.start_file(
+                // We can unwrap safely here, because we know that the path is a file and is UTF-8 encoded.
+                path.as_ref().file_name().unwrap().to_str().unwrap(),
+                zip::write::FileOptions::default(),
+            )
+            .map_err(ArchiveError::CreateError)?;
+            zip.write_all(&buffer)?;
         }
+        Ok(())
     }
-    false
+
+    pub fn extract<P: AsRef<Path>>(&self, destination: P) -> Result<(), ArchiveError> {
+        let file = File::open(self.as_path())?;
+        let mut archive = zip::ZipArchive::new(file).map_err(ArchiveError::ExtractError)?;
+        Ok(archive
+            .extract(destination)
+            .map_err(ArchiveError::ExtractError)?)
+    }
 }
 
-fn zip_archive_is_accessible(path: &str) -> Result<File> {
-    let path_obj = Path::new(path);
+#[cfg(test)]
+mod tests {
+    use std::path::Path;
+    use tempfile::tempdir;
 
-    debug!("Test if {} is accessible", path);
+    use super::*;
 
-    if !is_zip_archive(path_obj) {
-        return Err(Error::NotValidZipArchive(path.to_string()));
+    #[test]
+    fn test_archive_new_from_path() {
+        let path = Path::new("test.zip");
+        let archive = Archive::new(path);
+        assert_eq!(archive.as_path(), path);
     }
-    if !path_obj.exists() {
-        return Err(Error::NotValidZipArchive(format!(
-            "{} does not exists",
-            path.to_string()
-        )));
+
+    #[test]
+    fn test_archive_new_from_str() {
+        let archive = Archive::new("test.zip");
+        assert_eq!(archive.as_path(), Path::new("test.zip"));
     }
-    let file = File::open(path)?;
 
-    Ok(file)
-}
-
-fn list_files(path: &PathBuf) -> Result<Vec<String>> {
-    let mut files = Vec::new();
-    for entry in WalkDir::new(path) {
-        let entry = entry?;
-        if entry.file_type().is_file() {
-            let path_str = entry.path().display().to_string();
-            log::debug!("{}", path_str);
-            files.push(path_str);
-        }
+    #[test]
+    fn test_archive_create() {
+        let target = tempdir().unwrap();
+        let dest = tempdir().unwrap();
+        let file_path = target.path().join("test01.txt");
+        let mut file = File::create(&file_path).unwrap();
+        writeln!(file, "test01").unwrap();
+        let archive = Archive::new(dest.path().join("test.zip"));
+        let paths = vec![file_path];
+        archive.create(&paths).unwrap();
     }
-    Ok(files)
-}
 
-pub fn extract_zip(input_file: &str, output_directory: &PathBuf) -> Result<Vec<String>> {
-    let reader = zip_archive_is_accessible(input_file)?;
-    let mut archive = zip::ZipArchive::new(reader)?;
-
-    if archive.is_empty() {
-        return Err(Error::NotValidZipArchive(format!(
-            "{} is empty",
-            input_file.to_string()
-        )));
+    #[test]
+    fn test_archive_create_with_invalid_path() {
+        let archive = Archive::new("/invalid/path/test.zip");
+        assert!(archive.create::<PathBuf>(&[]).is_err());
     }
-    archive.extract(output_directory).or_else(|e| {
-        Err(Error::NotValidZipArchive(format!(
-            "{} {}",
-            input_file.to_string(),
-            e.to_string(),
-        )))
-    })?;
-    Ok(list_files(&output_directory)?)
-}
-
-pub fn create_output_archive(input_directory: &str, filename: &str) -> Result<()> {
-    let file = File::create(filename)?;
-    let mut zip = ZipWriter::new(file);
-    for entry in WalkDir::new(input_directory) {
-        let entry = entry.unwrap();
-        if let Some(extension) = entry.path().extension() {
-            if extension == "dcm" {
-                let input_file = File::open(entry.path())?;
-                let mut reader = BufReader::new(input_file);
-                let mut buffer = Vec::new();
-                reader.read_to_end(&mut buffer)?;
-                zip.start_file(
-                    entry
-                        .path()
-                        .file_name()
-                        .unwrap()
-                        .to_str()
-                        .unwrap()
-                        .to_string(),
-                    FileOptions::default(),
-                )?;
-                zip.write_all(&buffer)?;
-            }
-        }
-    }
-    Ok(())
 }

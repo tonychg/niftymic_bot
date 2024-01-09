@@ -9,7 +9,7 @@ use ulid::Ulid;
 use walkdir::WalkDir;
 
 use crate::{
-    archive::{create_output_archive, extract_zip},
+    archive::{Archive, ArchiveError},
     config::Config,
     spawn::{spawn_command, DockerWrapper},
 };
@@ -38,6 +38,8 @@ pub enum Error {
     FailedToCreateWorkingDirectory(String),
     #[error("Failed to start bot")]
     FailedToStartBot,
+    #[error(transparent)]
+    ArchiveError(#[from] ArchiveError),
 }
 
 pub type Result<T> = std::result::Result<T, self::Error>;
@@ -135,9 +137,8 @@ impl WorkingDirectory {
         fs::create_dir(&working_directory.masks)?;
         fs::create_dir(&working_directory.output_nii)?;
         fs::create_dir(&working_directory.output_dicom)?;
-        extract_zip(&archive_path, &working_directory.archive)?;
+        Archive::new(&archive_path).extract(&working_directory.archive)?;
         fs::remove_file(archive_path)?;
-
         Ok(working_directory)
     }
 
@@ -203,6 +204,10 @@ impl WorkingDirectory {
             self.search_files_by_extension(&self.masks.display().to_string(), "gz"),
             relative_to,
         )
+    }
+
+    pub fn get_final_dicom_images(&self) -> Vec<String> {
+        self.search_files_by_extension(&self.output_dicom.display().to_string(), "dcm")
     }
 
     pub fn absolute_path(&self) -> String {
@@ -391,10 +396,8 @@ impl NiftyMic {
             "Creating output archive {}",
             self.working_directory.get_dicom_filename()
         );
-        create_output_archive(
-            &self.working_directory.get_absolute_dicom_output_directory(),
-            &self.working_directory.get_absolute_dicom_output(),
-        )?;
+        Archive::new(&self.working_directory.get_absolute_dicom_output())
+            .create(self.working_directory.get_final_dicom_images().as_slice())?;
         Ok(self.working_directory.get_absolute_dicom_output())
     }
 }
